@@ -21,6 +21,9 @@ data class Note(
     val userName: String,
     val avatar: String,
     val cover: String,
+    val coverWidth: Int,
+    val coverHeight: Int,
+    //之后可以添加视频等
     val likes: String,
     val isVideo: Boolean
 )

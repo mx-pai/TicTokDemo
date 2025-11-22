@@ -1,15 +1,18 @@
 package com.example.myapplication
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.request.RequestOptions
 
-class NoteAdapter(private val noteList: List<Note>) :
+class NoteAdapter(private var noteList: List<Note>) :
     RecyclerView.Adapter<NoteAdapter.NoteViewHolder>() {
         class NoteViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val ivCover: ImageView = view.findViewById(R.id.ivCover)
@@ -27,21 +30,37 @@ class NoteAdapter(private val noteList: List<Note>) :
 
         override fun onBindViewHolder(holder: NoteViewHolder, position: Int) {
             val note = noteList[position]
+            val ratio = "${note.coverWidth}:${note.coverHeight}"
+            Log.d("COVER", "url = ${note.cover}")
+
             holder.tvTitle.text = note.title
             holder.tvUser.text = note.userName
             holder.tvLikes.text = note.likes
 
+            val params = holder.ivCover.layoutParams as ConstraintLayout.LayoutParams
+            params.dimensionRatio = ratio
+            holder.ivCover.layoutParams = params
+
+
             Glide.with(holder.itemView.context)
                 .load(note.cover)
-                .apply(RequestOptions.bitmapTransform(RoundedCorners(10)))
+                .apply(
+                    RequestOptions()
+                        .transform(RoundedCorners(20))
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .placeholder(R.drawable.cover_placeholder)
+                )
                 .into(holder.ivCover)
 
             Glide.with(holder.itemView.context)
                 .load(note.avatar)
-                .apply(RequestOptions.bitmapTransform(RoundedCorners(10)))
+                .circleCrop()
                 .into(holder.ivAvatar)
         }
-        override fun getItemCount(): Int {
-            return noteList.size
+        override fun getItemCount(): Int = noteList.size
+
+        fun updateData(newData: List<Note>) {
+            noteList = newData
+            notifyDataSetChanged()
         }
     }
