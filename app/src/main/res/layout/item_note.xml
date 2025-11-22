@@ -51,8 +51,8 @@
 
                     <ImageView
                         android:id="@+id/ivAvatar"
-                        android:layout_width="19dp"
-                        android:layout_height="24dp"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
                         android:scaleType="centerCrop"
                         android:src="@mipmap/ic_launcher_round" />
 
@@ -73,7 +73,7 @@
                         android:id="@+id/ivLike"
                         android:layout_width="16dp"
                         android:layout_height="16dp"
-                        android:src="@drawable/iv_like" />
+                        android:src="@drawable/heart" />
 
                     <TextView
                         android:id="@+id/tvLikes"

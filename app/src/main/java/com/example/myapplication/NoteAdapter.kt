@@ -19,7 +19,9 @@ class NoteAdapter(private var noteList: List<Note>) :
             val tvTitle: TextView = view.findViewById(R.id.tvTitle)
             val ivAvatar: ImageView = view.findViewById(R.id.ivAvatar)
             val tvUser: TextView = view.findViewById(R.id.tvUser)
-            val tvLikes: TextView = view.findViewById(R.id.tvLikes)
+
+            val ivLike: ImageView = view.findViewById(R.id.ivLike)
+            var tvLikes: TextView = view.findViewById(R.id.tvLikes)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NoteViewHolder {
@@ -35,7 +37,13 @@ class NoteAdapter(private var noteList: List<Note>) :
 
             holder.tvTitle.text = note.title
             holder.tvUser.text = note.userName
-            holder.tvLikes.text = note.likes
+            holder.tvLikes.text = note.likes.toString()
+
+            if (note.isLiked) {
+                holder.ivLike.setImageResource(R.drawable.heart_filled)
+            } else {
+                holder.ivLike.setImageResource(R.drawable.heart)
+            }
 
             val params = holder.ivCover.layoutParams as ConstraintLayout.LayoutParams
             params.dimensionRatio = ratio
@@ -56,7 +64,22 @@ class NoteAdapter(private var noteList: List<Note>) :
                 .load(note.avatar)
                 .circleCrop()
                 .into(holder.ivAvatar)
+
+            holder.ivLike.setOnClickListener {
+                val pos = holder.bindingAdapterPosition
+                if (pos == RecyclerView.NO_POSITION) return@setOnClickListener
+
+                val currentNote = noteList[pos]
+                currentNote.isLiked = !currentNote.isLiked
+                if (currentNote.isLiked) {
+                    currentNote.likes += 1
+                } else {
+                    currentNote.likes -= 1
+                }
+                notifyItemChanged(pos, "like")
+            }
         }
+
         override fun getItemCount(): Int = noteList.size
 
         fun updateData(newData: List<Note>) {

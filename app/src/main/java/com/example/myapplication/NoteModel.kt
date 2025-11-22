@@ -24,6 +24,7 @@ data class Note(
     val coverWidth: Int,
     val coverHeight: Int,
     //之后可以添加视频等
-    val likes: String,
-    val isVideo: Boolean
+    var likes: Int,
+    val isVideo: Boolean,
+    var isLiked: Boolean = false
 )

@@ -36,12 +36,10 @@ class MainActivity : AppCompatActivity() {
 
         setupTablelayout()
         setupRecyclerView()
+        requestData()
         setupBottomNavigation()
         setupSwipeRefresh()
-
     }
-
-
 
     private fun setupBottomNavigation() {
         val bottomNavigationView = findViewById<BottomNavigationView>(R.id.bottomNavigationView)
@@ -69,7 +67,6 @@ class MainActivity : AppCompatActivity() {
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
         swipeRefreshLayout.setOnRefreshListener {
             requestData()
-
             swipeRefreshLayout.postDelayed({
                 swipeRefreshLayout.isRefreshing = false
             }, 800)
