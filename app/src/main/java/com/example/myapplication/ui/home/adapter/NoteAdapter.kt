@@ -1,8 +1,10 @@
-package com.example.myapplication
+package com.example.myapplication.ui.home.adapter
+
+import android.annotation.SuppressLint
 import android.util.Log
 import android.view.LayoutInflater
-import android.view.ViewGroup
 import android.view.View
+import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -11,6 +13,8 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.request.RequestOptions
+import com.example.myapplication.R
+import com.example.myapplication.data.model.Note
 
 class NoteAdapter(private var noteList: List<Note>) :
     RecyclerView.Adapter<NoteAdapter.NoteViewHolder>() {
@@ -82,6 +86,7 @@ class NoteAdapter(private var noteList: List<Note>) :
 
         override fun getItemCount(): Int = noteList.size
 
+        @SuppressLint("NotifyDataSetChanged")
         fun updateData(newData: List<Note>) {
             noteList = newData
             notifyDataSetChanged()
