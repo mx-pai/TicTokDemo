@@ -5,29 +5,34 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.model.Note
-import com.example.myapplication.data.repository.FeedRepository
+import com.example.myapplication.data.service.ApiService
+import com.example.myapplication.utils.BASE_URL
 import kotlinx.coroutines.launch
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class MainViewModel : ViewModel() {
-    private val repository = FeedRepository()
+
     private val _notes = MutableLiveData<List<Note>>()
     val notes: LiveData<List<Note>> = _notes
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
-    private val _error = MutableLiveData<String?>()
-    val error: LiveData<String?> = _error
-
-    fun loadData() {
-        _isLoading.value = true
-        _error.value = null
+    fun loadNotes() {
         viewModelScope.launch {
+            _isLoading.value = true
             try {
-                // 这里调用 Repository 里的 suspend 函数
-                val data = repository.getFeedByCategory("")
-                _notes.value = data.getOrNull() ?: emptyList()
+                val retrofit = Retrofit.Builder()
+                    .baseUrl(BASE_URL)
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .build()
+
+                val response = retrofit.create(ApiService::class.java).getFeed()
+                if (response.isSuccessful) {
+                    _notes.value = response.body()?.data?.list ?: emptyList()
+                }
             } catch (e: Exception) {
-                _error.value = e.message
+                // 错误处理
                 e.printStackTrace()
             } finally {
                 _isLoading.value = false
