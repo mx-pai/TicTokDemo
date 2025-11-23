@@ -8,6 +8,9 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.graphics.shapes.RoundedPolygon
+import androidx.recyclerview.widget.AsyncListDiffer
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
@@ -15,80 +18,100 @@ import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.request.RequestOptions
 import com.example.myapplication.R
 import com.example.myapplication.data.model.Note
+import com.example.myapplication.databinding.ItemNoteBinding
+import kotlin.text.get
 
-class NoteAdapter(private var noteList: List<Note>) :
-    RecyclerView.Adapter<NoteAdapter.NoteViewHolder>() {
-        class NoteViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val ivCover: ImageView = view.findViewById(R.id.ivCover)
-            val tvTitle: TextView = view.findViewById(R.id.tvTitle)
-            val ivAvatar: ImageView = view.findViewById(R.id.ivAvatar)
-            val tvUser: TextView = view.findViewById(R.id.tvUser)
+class NoteAdapter : RecyclerView.Adapter<NoteAdapter.NoteViewHolder>() {
+        private val differ = AsyncListDiffer(this, NoteDiffCallback())
+        var notes: List<Note>
+            get() = differ.currentList
+            set(value) = differ.submitList(value)
 
-            val ivLike: ImageView = view.findViewById(R.id.ivLike)
-            var tvLikes: TextView = view.findViewById(R.id.tvLikes)
+        class NoteViewHolder(
+            private val binding: ItemNoteBinding
+        ) : RecyclerView.ViewHolder(binding.root)  {
+            fun bind(note: Note, onLikeClick: (Int) -> Unit) {
+                binding.apply {
+                    tvTitle.text = note.title
+                    tvUser.text = note.userName
+                    tvLikes.text = note.likes.toString()
+                    ivLike.setImageResource(
+                        if (note.isLiked) R.drawable.heart_filled else R.drawable.heart
+                    )
+                    ivCover.loadWithRatio(note.cover, note.coverWidth, note.coverHeight)
+                    ivAvatar.loadCircular(note.avatar)
+
+                    ivLike.setOnClickListener {
+                        val position = bindingAdapterPosition
+                        if (position != RecyclerView.NO_POSITION) {
+                            note.isLiked = !note.isLiked
+                            if (note.isLiked) {
+                                note.likes += 1
+                            } else {
+                                note.likes -= 1
+                            }
+                            binding.tvLikes.text = note.likes.toString()
+                            ivLike.setImageResource(
+                                if (note.isLiked) R.drawable.heart_filled else R.drawable.heart
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NoteViewHolder {
-            val view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.item_note, parent, false)
-            return NoteViewHolder(view)
+            val binding = ItemNoteBinding.inflate(
+                LayoutInflater.from(parent.context), parent, false
+            )
+            return NoteViewHolder(binding)
         }
 
         override fun onBindViewHolder(holder: NoteViewHolder, position: Int) {
-            val note = noteList[position]
-            val ratio = "${note.coverWidth}:${note.coverHeight}"
-            Log.d("COVER", "url = ${note.cover}")
-
-            holder.tvTitle.text = note.title
-            holder.tvUser.text = note.userName
-            holder.tvLikes.text = note.likes.toString()
-
-            if (note.isLiked) {
-                holder.ivLike.setImageResource(R.drawable.heart_filled)
-            } else {
-                holder.ivLike.setImageResource(R.drawable.heart)
-            }
-
-            val params = holder.ivCover.layoutParams as ConstraintLayout.LayoutParams
-            params.dimensionRatio = ratio
-            holder.ivCover.layoutParams = params
-
-
-            Glide.with(holder.itemView.context)
-                .load(note.cover)
-                .apply(
-                    RequestOptions()
-                        .transform(RoundedCorners(20))
-                        .diskCacheStrategy(DiskCacheStrategy.ALL)
-                        .placeholder(R.drawable.cover_placeholder)
-                )
-                .into(holder.ivCover)
-
-            Glide.with(holder.itemView.context)
-                .load(note.avatar)
-                .circleCrop()
-                .into(holder.ivAvatar)
-
-            holder.ivLike.setOnClickListener {
-                val pos = holder.bindingAdapterPosition
-                if (pos == RecyclerView.NO_POSITION) return@setOnClickListener
-
-                val currentNote = noteList[pos]
-                currentNote.isLiked = !currentNote.isLiked
-                if (currentNote.isLiked) {
-                    currentNote.likes += 1
-                } else {
-                    currentNote.likes -= 1
+            holder.bind(notes[position]) { pos ->
+                if (pos != RecyclerView.NO_POSITION) {
+                    val currentNote = notes[pos]
+                    currentNote.isLiked = !currentNote.isLiked
+                    if (currentNote.isLiked) {
+                        currentNote.likes += 1
+                    } else {
+                        currentNote.likes -= 1
+                    }
                 }
-                notifyItemChanged(pos, "like")
             }
         }
-
-        override fun getItemCount(): Int = noteList.size
-
-        @SuppressLint("NotifyDataSetChanged")
-        fun updateData(newData: List<Note>) {
-            noteList = newData
-            notifyDataSetChanged()
-        }
+        override fun getItemCount(): Int = notes.size
     }
+class NoteDiffCallback : DiffUtil.ItemCallback<Note>() {
+    override fun areItemsTheSame(oldItem: Note, newItem: Note): Boolean {
+        return oldItem.id == newItem.id
+    }
+
+    override fun areContentsTheSame(oldItem: Note, newItem: Note): Boolean {
+        return oldItem == newItem
+    }
+}
+
+fun ImageView.loadWithRatio(url: String, width: Int, height: Int) {
+    val ratio = "$width:$height"
+    val params = layoutParams as ConstraintLayout.LayoutParams
+    params.dimensionRatio = ratio
+    layoutParams = params
+
+    Glide.with(context)
+        .load(url)
+        .apply(
+            RequestOptions()
+                .transform(RoundedCorners(16))
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .placeholder(R.drawable.cover_placeholder)
+        )
+        .into(this)
+}
+
+fun ImageView.loadCircular(url: String) {
+    Glide.with(context)
+        .load(url)
+        .circleCrop()
+        .into(this)
+}
