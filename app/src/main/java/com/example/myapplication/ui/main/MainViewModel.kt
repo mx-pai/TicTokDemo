@@ -1,5 +1,6 @@
 package com.example.myapplication.ui.main
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -13,6 +14,10 @@ class MainViewModel : ViewModel() {
 
     private var currentPage = 1
     private var pageSize = 16
+
+    //必须保存本地数据，否则是无状态的
+    private val localNotes = mutableListOf<Note>()
+
     private val _notes = MutableLiveData<List<Note>>()
     val notes: LiveData<List<Note>> = _notes
     private val _isLoading = MutableLiveData<Boolean>()
@@ -26,6 +31,7 @@ class MainViewModel : ViewModel() {
 
     init {
         _hasMoreData.value = true
+        _isLoadingMore.value = false
     }
 
     fun loadFirstPage() {
@@ -35,15 +41,14 @@ class MainViewModel : ViewModel() {
                 currentPage = 1
                 val result = repository.getFeed()
                 if (result.isSuccess) {
-                    _notes.value = result.getOrDefault(emptyList())
-                    _hasMoreData.value = result.getOrDefault(emptyList()).size >= pageSize
-                } else {
-                    _notes.value = emptyList()
-                    _hasMoreData.value = false
+                    val apiNotes = result.getOrDefault(emptyList())
+                    localNotes.clear()
+                    localNotes.addAll(apiNotes)
+
+                    _notes.value = localNotes.toList()
+                    _hasMoreData.value = apiNotes.size >= pageSize
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            } finally {
+            }finally {
                 _isLoading.value = false
             }
         }
@@ -54,28 +59,63 @@ class MainViewModel : ViewModel() {
             if (_hasMoreData.value == false || _isLoadingMore.value == true) {
                 return@launch
             }
-            _isLoading.value = true
+            _isLoadingMore.value = true
+            kotlinx.coroutines.delay(1000)
             try {
                 currentPage++
+                Log.d("MainViewModel", "loadMore: currentPage=$currentPage")
                 val result = repository.getFeed(currentPage, pageSize)
                 if (result.isSuccess) {
-                    val newNotes = result.getOrDefault(emptyList())
-                    val allNotes = _notes.value.orEmpty() + newNotes
-                    _notes.value = allNotes
-                    _hasMoreData.value = newNotes.size >= pageSize
-                } else {
-                    _hasMoreData.value = false
+                    val newApiNotes = result.getOrDefault(emptyList())
+                    val mergeNotes = newApiNotes.map { newNote ->
+                        val existingNote = localNotes.find {it.id == newNote.id}
+                        if (existingNote != null) {
+                            newNote.copy(
+                                isLiked = existingNote.isLiked,
+                                likes = existingNote.likes
+                            )
+                        } else {
+                            newNote
+                        }
+                    }
+                    //addAll会出现刷新问题
+                    val distinctNotes = mergeNotes.filter { newNote ->
+                        localNotes.none { it.id == newNote.id }
+                    }
+
+                    if (distinctNotes.isNotEmpty()) {
+                        localNotes.addAll(distinctNotes)
+                        _notes.value = localNotes.toList()
+                    }
+                    Log.d("MainViewModel", "后端返回条数: ${newApiNotes.size}")
+                    Log.d("MainViewModel", "去重后剩余条数: ${distinctNotes.size}") // 如果这里是 0，说明就是这个问题
+
+                    _hasMoreData.value = newApiNotes.size >= pageSize
                 }
-            } catch (e: Exception) {
-                currentPage--
-                e.printStackTrace()
             } finally {
-                _isLoading.value = false
+                _isLoadingMore.value = false
             }
         }
     }
 
-    fun refresh() {
-        loadFirstPage()
+    fun toggleLike(targetNote: Note) {
+        val currentList = _notes.value.orEmpty().toMutableList()
+        val index = currentList.indexOfFirst { it.id == targetNote.id }
+        if (index != -1) {
+            val oldNote = currentList[index]
+            val newNote = oldNote.copy(
+                isLiked = !oldNote.isLiked,
+                likes = if (oldNote.isLiked) oldNote.likes - 1 else oldNote.likes + 1
+            )
+            currentList[index] = newNote
+
+            val localIndex = localNotes.indexOfFirst { it.id == targetNote.id }
+            if (localIndex != -1) {
+                localNotes[localIndex] = newNote
+            }
+
+            _notes.value = currentList
+
+        }
     }
 }

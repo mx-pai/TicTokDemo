@@ -57,6 +57,8 @@ dependencies {
     implementation(libs.androidx.swiperefreshlayout)
     implementation("androidx.core:core-splashscreen:1.0.0")
 
+
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -21,16 +21,30 @@ import com.example.myapplication.data.model.Note
 import com.example.myapplication.databinding.ItemNoteBinding
 import kotlin.text.get
 
-class NoteAdapter : RecyclerView.Adapter<NoteAdapter.NoteViewHolder>() {
-        private val differ = AsyncListDiffer(this, NoteDiffCallback())
-        var notes: List<Note>
-            get() = differ.currentList
-            set(value) = differ.submitList(value)
+class NoteAdapter(
+    private val onLikeClick: (Note) -> Unit,
+    private val onNoteClick: (Note) -> Unit
+) : RecyclerView.Adapter<NoteAdapter.NoteViewHolder>() {
 
-        class NoteViewHolder(
-            private val binding: ItemNoteBinding
-        ) : RecyclerView.ViewHolder(binding.root)  {
-            fun bind(note: Note, onLikeClick: (Int) -> Unit) {
+        init {
+            setHasStableIds(true)
+        }
+        private val differ = AsyncListDiffer(this, NoteDiffCallback())
+
+        fun submitList(list: List<Note>) {
+            differ.submitList(list)
+        }
+
+        override fun getItemId(position: Int): Long {
+            return differ.currentList[position].id.toLong()
+        }
+
+        class NoteViewHolder(private val binding: ItemNoteBinding) :
+            RecyclerView.ViewHolder(binding.root)  {
+            fun bind(
+                note: Note,
+                onLikeClick: (Note) -> Unit,
+                onNoteClick: (Note) -> Unit) {
                 binding.apply {
                     tvTitle.text = note.title
                     tvUser.text = note.userName
@@ -42,19 +56,11 @@ class NoteAdapter : RecyclerView.Adapter<NoteAdapter.NoteViewHolder>() {
                     ivAvatar.loadCircular(note.avatar)
 
                     ivLike.setOnClickListener {
-                        val position = bindingAdapterPosition
-                        if (position != RecyclerView.NO_POSITION) {
-                            note.isLiked = !note.isLiked
-                            if (note.isLiked) {
-                                note.likes += 1
-                            } else {
-                                note.likes -= 1
-                            }
-                            binding.tvLikes.text = note.likes.toString()
-                            ivLike.setImageResource(
-                                if (note.isLiked) R.drawable.heart_filled else R.drawable.heart
-                            )
-                        }
+                        onLikeClick(note)
+                    }
+
+                    root.setOnClickListener {
+                        onNoteClick(note)
                     }
                 }
             }
@@ -68,20 +74,14 @@ class NoteAdapter : RecyclerView.Adapter<NoteAdapter.NoteViewHolder>() {
         }
 
         override fun onBindViewHolder(holder: NoteViewHolder, position: Int) {
-            holder.bind(notes[position]) { pos ->
-                if (pos != RecyclerView.NO_POSITION) {
-                    val currentNote = notes[pos]
-                    currentNote.isLiked = !currentNote.isLiked
-                    if (currentNote.isLiked) {
-                        currentNote.likes += 1
-                    } else {
-                        currentNote.likes -= 1
-                    }
-                }
-            }
+            val note = differ.currentList[position]
+            holder.bind(note, onLikeClick, onNoteClick)
         }
-        override fun getItemCount(): Int = notes.size
-    }
+
+    override fun getItemCount(): Int = differ.currentList.size
+}
+
+
 class NoteDiffCallback : DiffUtil.ItemCallback<Note>() {
     override fun areItemsTheSame(oldItem: Note, newItem: Note): Boolean {
         return oldItem.id == newItem.id
@@ -105,6 +105,7 @@ fun ImageView.loadWithRatio(url: String, width: Int, height: Int) {
                 .transform(RoundedCorners(16))
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
                 .placeholder(R.drawable.cover_placeholder)
+                .dontAnimate()
         )
         .into(this)
 }
@@ -115,3 +116,4 @@ fun ImageView.loadCircular(url: String) {
         .circleCrop()
         .into(this)
 }
+

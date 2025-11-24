@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
+import com.example.myapplication.data.model.Note
 import com.example.myapplication.ui.home.adapter.NoteAdapter
 import com.example.myapplication.databinding.FragmentHomeBinding
 import com.example.myapplication.ui.main.MainViewModel
@@ -25,7 +26,7 @@ class HomeFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -47,7 +48,7 @@ class HomeFragment : Fragment() {
 
     private fun observeData() {
         viewModel.notes.observe(viewLifecycleOwner) { notes ->
-            adapter.notes = notes
+            adapter.submitList(notes)
         }
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.swipeRefreshLayout.isRefreshing = isLoading
@@ -62,7 +63,7 @@ class HomeFragment : Fragment() {
 
     private fun setupSwipeRefresh() {
         binding.swipeRefreshLayout.setOnRefreshListener {
-            viewModel.refresh()
+            viewModel.loadFirstPage()
         }
     }
 
@@ -75,8 +76,8 @@ class HomeFragment : Fragment() {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 tab?.let{
                     when(it.position){
-                        0 -> viewModel.refresh()
-                        1 -> viewModel.loadFirstPage() //使用默认Note
+                        0 -> viewModel.loadFirstPage() //使用默认Note
+                        1 -> viewModel.loadFirstPage()
                         2 -> viewModel.loadFirstPage()
                         3 -> viewModel.loadFirstPage()
                     }
@@ -86,29 +87,40 @@ class HomeFragment : Fragment() {
             override fun onTabReselected(tab: TabLayout.Tab?) { }
 
         })
-        viewModel.loadFirstPage()
     }
 
 
     private fun setupRecyclerView() {
         val layoutManager = StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL)
-        layoutManager.gapStrategy = StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
+        layoutManager.gapStrategy = StaggeredGridLayoutManager.GAP_HANDLING_NONE
         binding.recyclerView.layoutManager = layoutManager
-        adapter = NoteAdapter()
+        binding.recyclerView.itemAnimator = null
+        adapter = NoteAdapter(
+            onLikeClick = {note ->
+                viewModel.toggleLike(note)
+            },
+            onNoteClick = {note ->
+                //TODO  viewModel.navigateToDetail(note)
+            },
+        )
         binding.recyclerView.adapter = adapter
 
         binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
+            }
+
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
-                if (dy > 0) {
-                    val totalItemCount = layoutManager.itemCount
-                    val lastVisibleItemPositions = layoutManager.findLastVisibleItemPositions(null)
-                    val lastVisibleItemPosition = lastVisibleItemPositions.maxOrNull() ?: 0
-                    if (lastVisibleItemPosition >= totalItemCount - 5) {
+
+                if (!recyclerView.canScrollVertically(1) && dy > 0) {
+                    if (viewModel.hasMoreData.value != false &&
+                        viewModel.isLoadingMore.value != true) {
                         viewModel.loadMore()
                     }
                 }
             }
         })
     }
+
 }
