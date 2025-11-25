@@ -2,24 +2,7 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.MyApplication" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
-        <item name="windowSplashScreenBackground">#FF9A9E</item>
 
-        <!-- 启动图标 -->
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>
-
-        <!-- 图标背景颜色（可选） -->
-        <item name="windowSplashScreenIconBackgroundColor">#FAD0C4</item>
-
-        <!-- 动画时长（对静态图标无效，但最好设置） -->
-        <item name="windowSplashScreenAnimationDuration">1000</item>
-
-        <!-- 启动后应用的主题 -->
-        <item name="postSplashScreenTheme">@style/Theme.MyApplication</item>
-
-        <item name="windowSplashScreenBackground">@drawable/splash_background</item>
     </style>
-
     <style name="Theme.MyApplication" parent="Base.Theme.MyApplication" />
-
 </resources>

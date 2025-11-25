@@ -113,7 +113,6 @@ class MainViewModel : ViewModel() {
             if (localIndex != -1) {
                 localNotes[localIndex] = newNote
             }
-
             _notes.value = currentList
 
         }
