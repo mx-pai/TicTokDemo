@@ -100,7 +100,10 @@ class HomeFragment : Fragment() {
                 viewModel.toggleLike(note)
             },
             onNoteClick = {note ->
-                //TODO  viewModel.navigateToDetail(note)
+                val intent = android.content.Intent(activity,
+                    com.example.myapplication.ui.detail.NoteDetailActivity::class.java)
+                intent.putExtra("NOTE_DATA", note)
+                startActivity(intent)
             },
         )
         binding.recyclerView.adapter = adapter

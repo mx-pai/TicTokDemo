@@ -15,7 +15,6 @@ class MainViewModel : ViewModel() {
     private var currentPage = 1
     private var pageSize = 16
 
-    //必须保存本地数据，否则是无状态的
     private val localNotes = mutableListOf<Note>()
 
     private val _notes = MutableLiveData<List<Note>>()
@@ -78,6 +77,7 @@ class MainViewModel : ViewModel() {
                             newNote
                         }
                     }
+
                     //addAll会出现刷新问题
                     val distinctNotes = mergeNotes.filter { newNote ->
                         localNotes.none { it.id == newNote.id }

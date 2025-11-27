@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("kotlin-parcelize")
 }
 
 android {
@@ -56,6 +57,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
     implementation(libs.androidx.swiperefreshlayout)
     implementation("androidx.core:core-splashscreen:1.0.0")
+    implementation(libs.androidx.viewpager2)
+    implementation(libs.constraintlayout)
 
 
 
