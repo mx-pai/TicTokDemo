@@ -1,5 +1,6 @@
 package com.example.myapplication.ui.detail.adapter
 
+import android.annotation.SuppressLint
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import android.view.LayoutInflater
@@ -39,6 +40,7 @@ class ImageGalleryAdapter : RecyclerView.Adapter<ImageGalleryAdapter.ImageViewHo
 
     override fun getItemCount(): Int = images.size
 
+    @SuppressLint("NotifyDataSetChanged")
     fun submitList(images: List<String>) {
         this.images = images
         notifyDataSetChanged()

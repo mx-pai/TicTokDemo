@@ -23,7 +23,7 @@ data class CommentResponse(
 
 data class CommentData(
     val total: Int,
-    val nextCursor: Int,
+    val nextCursor: String?,
     @SerializedName("list")
     val list: List<Comment>
 )

@@ -19,6 +19,7 @@
         android:layout_height="wrap_content"
         android:text="用户名"
         android:layout_marginStart="4dp"
+        android:layout_marginBottom="3dp"
         android:textSize="14sp"
         android:textStyle="bold"
         android:textColor="#333333"
@@ -60,7 +61,6 @@
         android:layout_width="20dp"
         android:layout_height="20dp"
         android:src="@drawable/heart"
-        app:tint="#999999"
         app:layout_constraintTop_toBottomOf="@id/tvContent"
         app:layout_constraintEnd_toStartOf="@id/tvLikeCount"/>
 

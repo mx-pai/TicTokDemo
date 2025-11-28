@@ -1,10 +1,12 @@
 package com.example.myapplication.ui.home
 
+import android.app.Activity
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.RecyclerView
@@ -16,6 +18,7 @@ import com.example.myapplication.ui.main.MainViewModel
 import com.google.android.material.tabs.TabLayout
 
 
+@Suppress("DEPRECATION")
 class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
@@ -89,7 +92,6 @@ class HomeFragment : Fragment() {
         })
     }
 
-
     private fun setupRecyclerView() {
         val layoutManager = StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL)
         layoutManager.gapStrategy = StaggeredGridLayoutManager.GAP_HANDLING_NONE
@@ -100,10 +102,12 @@ class HomeFragment : Fragment() {
                 viewModel.toggleLike(note)
             },
             onNoteClick = {note ->
+                val latestNote = viewModel.notes.value?.firstOrNull { it.id == note.id } ?: note
                 val intent = android.content.Intent(activity,
-                    com.example.myapplication.ui.detail.NoteDetailActivity::class.java)
-                intent.putExtra("NOTE_DATA", note)
-                startActivity(intent)
+                    com.example.myapplication.ui.detail.NoteDetailActivity::class.java).apply {
+                    putExtra("NOTE", latestNote)
+                }
+                noteDetailLauncher.launch(intent)
             },
         )
         binding.recyclerView.adapter = adapter
@@ -124,6 +128,16 @@ class HomeFragment : Fragment() {
                 }
             }
         })
+    }
+
+    private val noteDetailLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.getParcelableExtra<Note>("NOTE")?.let { updatedNote ->
+                viewModel.updateNote(updatedNote)
+            }
+        }
     }
 
 }

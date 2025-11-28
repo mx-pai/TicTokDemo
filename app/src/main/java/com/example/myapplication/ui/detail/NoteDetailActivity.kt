@@ -1,5 +1,8 @@
 package com.example.myapplication.ui.detail
 
+import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -16,13 +19,19 @@ import com.example.myapplication.ui.detail.adapter.ImageGalleryAdapter
 import com.example.myapplication.ui.home.adapter.loadCircular
 import kotlinx.coroutines.launch
 import android.view.View
+import androidx.lifecycle.ViewModelProvider
 import com.example.myapplication.R
-import kotlin.collections.emptyList
+import com.example.myapplication.data.model.Comment
+import com.example.myapplication.ui.main.MainViewModel
 
 class NoteDetailActivity : AppCompatActivity(){
     private lateinit var binding: ActivityNoteDetailBinding
     private lateinit var imageAdapter: ImageGalleryAdapter
     private lateinit var commentAdapter: CommentAdapter
+    private lateinit var currentNote: Note
+    private val viewModel: MainViewModel by lazy {
+        ViewModelProvider(this)[MainViewModel::class.java]
+    }
     private val commentRepository = CommentRepository()
 
 
@@ -36,7 +45,13 @@ class NoteDetailActivity : AppCompatActivity(){
         binding = ActivityNoteDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val note = intent.getParcelableExtra<Note>("NOTE_DATA")
+        currentNote = intent.getParcelableExtra<Note>("NOTE") ?: run {
+            Toast.makeText(this, "数据错误", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+
+        val note = intent.getParcelableExtra<Note>("NOTE")
 
         if (note == null) {
             Toast.makeText(this, "数据错误", Toast.LENGTH_SHORT).show()
@@ -53,7 +68,11 @@ class NoteDetailActivity : AppCompatActivity(){
 
     private fun initAdapters() {
         imageAdapter = ImageGalleryAdapter()
-        commentAdapter = CommentAdapter()
+        commentAdapter = CommentAdapter(
+            onLikeClick = { comment ->
+                viewModel.targetCommentLike(comment)
+            }
+        )
 
         binding.rvComments.apply {
             layoutManager = LinearLayoutManager(this@NoteDetailActivity)
@@ -62,19 +81,21 @@ class NoteDetailActivity : AppCompatActivity(){
         }
     }
 
+    @SuppressLint("SetTextI18n")
     private fun setupViewPager(images: List<String>) {
         binding.viewPagerImages.adapter = imageAdapter
 
         binding.viewPagerImages.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
-                binding.tvImageIndicator.text = "${position + 1}/${images.size}"
+                "${position + 1}/${images.size}".also { binding.tvImageIndicator.text = it }
             }
         })
         imageAdapter.submitList(images)
         binding.tvImageIndicator.text = "1/${images.size}"
     }
 
+    @SuppressLint("SetTextI18n")
     private fun setupUI(note: Note) {
         binding.tvUsername.text = note.userName
         binding.tvContent.text = note.title
@@ -89,7 +110,7 @@ class NoteDetailActivity : AppCompatActivity(){
 
     private fun setupListeners() {
         binding.ivBack.setOnClickListener {
-            finish()
+            finishWithResult()
         }
         binding.ivLike.setOnClickListener {
             toggleLike()
@@ -105,17 +126,23 @@ class NoteDetailActivity : AppCompatActivity(){
     }
 
     private fun toggleLike() {
-        val note = intent.getParcelableExtra<Note>("NOTE_DATA") ?: return
-
-        note.isLiked = !note.isLiked
-        binding.ivLike.setImageResource(
-            if (note.isLiked) R.drawable.heart_filled else R.drawable.heart
+        currentNote = currentNote.copy(
+            isLiked = !currentNote.isLiked,
+            likes = if (currentNote.isLiked) currentNote.likes - 1 else currentNote.likes + 1
         )
+
+        binding.ivLike.setImageResource(
+            if (currentNote.isLiked) R.drawable.heart_filled else R.drawable.heart
+        )
+
+        setResult(Activity.RESULT_OK, Intent().putExtra("NOTE", currentNote))
 
     }
 
+    @SuppressLint("SetTextI18n")
     private fun loadComments() {
-        val noteId = intent.getParcelableExtra<Note>("NOTE_DATA")?.id ?: return
+        //val noteId = intent.getParcelableExtra<Note>("NOTE")?.id ?: return 后续完善
+        val noteId = currentNote.id
 
         lifecycleScope.launch {
             binding.progressBar.visibility = View.VISIBLE
@@ -134,4 +161,14 @@ class NoteDetailActivity : AppCompatActivity(){
             }
         }
     }
+
+    override fun onBackPressed() {
+        finishWithResult()
+    }
+
+    private fun finishWithResult() {
+        setResult(Activity.RESULT_OK, Intent().putExtra("NOTE", currentNote))
+        finish()
+    }
+
 }

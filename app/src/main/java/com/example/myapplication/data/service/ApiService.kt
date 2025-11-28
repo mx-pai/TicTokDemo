@@ -10,15 +10,13 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface ApiService {
-    @GET("feed")
+    @GET("note")
     suspend fun getFeed(
-        @Query("page") page: Int = 1,
-        @Query("limit") limit: Int = 16
     ): Response<FeedResponse>
 
-    @GET("comments/{noteId}")
+    @GET("feed")
     suspend fun getComments(
-        @Path("noteId") noteId: Int,
+        @Query("noteId") noteId: Int,
         @Query("cursor") cursor: String? = null,
         @Query("limit") limit: Int = 20
     ): Response<CommentResponse>

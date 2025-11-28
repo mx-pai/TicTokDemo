@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.data.model.Comment
 import com.example.myapplication.data.model.Note
 import com.example.myapplication.data.repository.FeedRepository
 import kotlinx.coroutines.launch
@@ -27,6 +28,10 @@ class MainViewModel : ViewModel() {
 
     private val _hasMoreData = MutableLiveData<Boolean>()
     val hasMoreData: LiveData<Boolean> = _hasMoreData
+
+    private val _comments = MutableLiveData<List<Comment>>()
+    val comments: LiveData<List<Comment>> = _comments
+
 
     init {
         _hasMoreData.value = true
@@ -63,7 +68,7 @@ class MainViewModel : ViewModel() {
             try {
                 currentPage++
                 Log.d("MainViewModel", "loadMore: currentPage=$currentPage")
-                val result = repository.getFeed(currentPage, pageSize)
+                val result = repository.getFeed()
                 if (result.isSuccess) {
                     val newApiNotes = result.getOrDefault(emptyList())
                     val mergeNotes = newApiNotes.map { newNote ->
@@ -115,6 +120,21 @@ class MainViewModel : ViewModel() {
             }
             _notes.value = currentList
 
+        }
+    }
+
+    fun targetCommentLike(updatedComment: Comment) {
+        viewModelScope.launch {
+            _comments.value = _comments.value?.map { comment ->
+                if (comment.id == updatedComment.id) updatedComment else comment
+            }
+        }
+    }
+
+
+    fun updateNote(updatedNote: Note) {
+        _notes.value = _notes.value?.map { note ->
+            if (note.id == updatedNote.id) updatedNote else note
         }
     }
 }
