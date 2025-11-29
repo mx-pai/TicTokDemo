@@ -26,13 +26,14 @@
                 android:id="@+id/tvTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="xhs标题测试，显示完整标题"
-                android:textColor="#333333"
+                android:text="标题测试，显示完整标题"
+                android:textColor="#E6E6E6"
                 android:ellipsize="end"
                 android:textSize="15sp"
                 android:maxLines="2"
                 android:textStyle="bold"
                 android:padding="8dp"
+                android:background="#212121"
                 app:layout_constraintTop_toBottomOf="@+id/ivCover"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"/>
@@ -45,6 +46,7 @@
                     android:gravity="center_vertical"
                     android:paddingStart="8dp"
                     android:paddingEnd="8dp"
+                    android:background="#212121"
                     app:layout_constraintTop_toBottomOf="@+id/tvTitle"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent">
@@ -65,7 +67,7 @@
                         android:ellipsize="end"
                         android:maxLines="1"
                         android:padding="8dp"
-                        android:textColor="#666666"
+                        android:textColor="#80807D"
                         android:textSize="13sp"
                         />
 
@@ -81,7 +83,7 @@
                         android:layout_height="wrap_content"
                         android:text="100"
                         android:textSize="14dp"
-                        android:textColor="#666666"
+                        android:textColor="#C1C1C1"
                         />
                     </LinearLayout>
 
