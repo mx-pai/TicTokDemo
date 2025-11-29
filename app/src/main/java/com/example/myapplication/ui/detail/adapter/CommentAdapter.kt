@@ -1,6 +1,7 @@
 package com.example.myapplication.ui.detail.adapter
 
 import android.annotation.SuppressLint
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
@@ -12,7 +13,8 @@ import com.example.myapplication.R
 import com.example.myapplication.ui.home.adapter.loadCircular
 
 class CommentAdapter(
-    private val onLikeClick: (Comment) -> Unit
+    private val onLikeClick: (Comment) -> Unit,
+    private val onReplyClick: (Comment) -> Unit
 ) : ListAdapter<Comment, CommentAdapter.CommentViewHolder>(CommentDiffCallback()) {
 
     override fun onCreateViewHolder(
@@ -31,10 +33,18 @@ class CommentAdapter(
         fun bind(comment: Comment) {
             binding.apply {
                 tvUserName.text = comment.userName
-                tvContent.text = comment.content
+                tvContent.text = if (comment.replyToUsername != null) {
+                    "回复${comment.replyToUsername} ${comment.content}"
+                } else {
+                    comment.content
+                }
                 tvInfo.text = "${comment.timestamp} ${comment.location.take(2)}"
                 tvLikeCount.text = comment.likes.toString()
                 ivAvatar.loadCircular(comment.avatar)
+
+                tvReply.setOnClickListener {
+                    onReplyClick(comment)
+                }
 
                 ivCommentLike.setImageResource(
                     if (comment.isLiked) R.drawable.heart_filled else R.drawable.heart
@@ -44,12 +54,13 @@ class CommentAdapter(
                         isLiked = !comment.isLiked,
                         likes = if (comment.isLiked) comment.likes - 1 else comment.likes + 1
                     )
-                    val updatedList = currentList.toMutableList()
-                    val index = updatedList.indexOfFirst { it.id == updated.id }
-                    if (index != -1) {
-                        updatedList[index] = updated
-                        submitList(updatedList.toList())
-                    }
+                    Log.d("CommentAdapter", "onLikeClick: $updated")
+//                    val updatedList = currentList.toMutableList()
+//                    val index = updatedList.indexOfFirst { it.id == updated.id }
+//                    if (index != -1) {
+//                        updatedList[index] = updated
+//                        submitList(updatedList.toList())
+//                    }
                     onLikeClick(updated)
                 }
             }

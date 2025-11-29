@@ -54,5 +54,9 @@ data class Comment(
     val timestamp: String,
     val location: String,
     val likes: Int,
-    val isLiked: Boolean
+    val isLiked: Boolean,
+    val replyToUsername: String? = null,
+    val parentCommentId: Int? = null,
+    val replies: List<Comment>? = null
 )
+

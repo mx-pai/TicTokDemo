@@ -2,4 +2,5 @@
 <resources>
     <item name="ivAvatar" type="id"/>
     <item name="ivShare" type="id"/>
+    <item name="layoutExpandedInput" type="id"/>
 </resources>

@@ -29,9 +29,6 @@ class MainViewModel : ViewModel() {
     private val _hasMoreData = MutableLiveData<Boolean>()
     val hasMoreData: LiveData<Boolean> = _hasMoreData
 
-    private val _comments = MutableLiveData<List<Comment>>()
-    val comments: LiveData<List<Comment>> = _comments
-
 
     init {
         _hasMoreData.value = true
@@ -122,15 +119,6 @@ class MainViewModel : ViewModel() {
 
         }
     }
-
-    fun targetCommentLike(updatedComment: Comment) {
-        viewModelScope.launch {
-            _comments.value = _comments.value?.map { comment ->
-                if (comment.id == updatedComment.id) updatedComment else comment
-            }
-        }
-    }
-
 
     fun updateNote(updatedNote: Note) {
         _notes.value = _notes.value?.map { note ->

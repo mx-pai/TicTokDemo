@@ -3,6 +3,7 @@ package com.example.myapplication.ui.detail
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -23,17 +24,24 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.myapplication.R
 import com.example.myapplication.data.model.Comment
 import com.example.myapplication.ui.main.MainViewModel
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 class NoteDetailActivity : AppCompatActivity(){
     private lateinit var binding: ActivityNoteDetailBinding
     private lateinit var imageAdapter: ImageGalleryAdapter
     private lateinit var commentAdapter: CommentAdapter
     private lateinit var currentNote: Note
+
     private val viewModel: MainViewModel by lazy {
         ViewModelProvider(this)[MainViewModel::class.java]
     }
     private val commentRepository = CommentRepository()
-
+    private val localComments = mutableListOf<Comment>()
+    private var serverComments: List<Comment> = emptyList()
+    private val gson = Gson()
+    private lateinit var sharedPreferences: SharedPreferences
+    private var replyToComment: Comment? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +58,7 @@ class NoteDetailActivity : AppCompatActivity(){
             finish()
             return
         }
+        sharedPreferences = getSharedPreferences("comments_${currentNote.id}", MODE_PRIVATE)
 
         val note = intent.getParcelableExtra<Note>("NOTE")
 
@@ -64,13 +73,31 @@ class NoteDetailActivity : AppCompatActivity(){
         setupUI(note)
         setupListeners()
         loadComments()
+        setupCommentInput()
     }
 
     private fun initAdapters() {
         imageAdapter = ImageGalleryAdapter()
         commentAdapter = CommentAdapter(
-            onLikeClick = { comment ->
-                viewModel.targetCommentLike(comment)
+            onLikeClick = { updated ->
+                val all = commentAdapter.currentList.toMutableList()
+                val idx = all.indexOfFirst { it.id == updated.id }
+                if (idx != -1) {
+                    all[idx] = updated
+                    commentAdapter.submitList(all)
+                }
+
+                val localIdx = localComments.indexOfFirst { it.id == updated.id }
+                if (localIdx != -1) {
+                    localComments[localIdx] = updated
+                    saveCommentsToLocal()
+                }
+            },
+            onReplyClick = { comment ->
+                replyToComment = comment
+                binding.etComment.hint = "回复 ${comment.userName}"
+                binding.etComment.requestFocus()
+                binding.layoutExpandedInput.visibility = View.VISIBLE
             }
         )
 
@@ -125,6 +152,105 @@ class NoteDetailActivity : AppCompatActivity(){
         }
     }
 
+    private fun setupCommentInput() {
+
+        binding.etComment.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                binding.layoutExpandedInput.visibility = View.VISIBLE
+                binding.etExpandedComment.setText(binding.etComment.text.toString())
+                binding.etExpandedComment.setSelection(binding.etComment.text.length)
+            }
+        }
+
+        binding.ivSend.setOnClickListener {
+            sendComment()
+        }
+
+        // 同步两个输入框的文本
+        binding.etComment.addTextChangedListener(object :
+            android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int,
+                                           count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before:
+            Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                if (binding.layoutExpandedInput.visibility == View.VISIBLE)
+                {
+                    val newText = s?.toString() ?: ""
+                    if (binding.etExpandedComment.text.toString() !=
+                        newText) {
+                        binding.etExpandedComment.setText(newText)
+
+                        binding.etExpandedComment.setSelection(newText.length)
+                    }
+                }
+            }
+        })
+
+        binding.etExpandedComment.addTextChangedListener(object :
+            android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int,
+                                           count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before:
+            Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                val newText = s?.toString() ?: ""
+                if (binding.etComment.text.toString() != newText) {
+                    binding.etComment.setText(newText)
+                    binding.etComment.setSelection(newText.length)
+                }
+            }
+        })
+
+        binding.nestedScrollView.setOnTouchListener { _, _ ->
+            if (binding.layoutExpandedInput.visibility == View.VISIBLE) {
+                binding.layoutExpandedInput.visibility = View.GONE
+                binding.etComment.clearFocus()
+                replyToComment = null
+                binding.etComment.hint = "说点什么..."
+            }
+            false
+        }
+
+    }
+
+    private fun sendComment() {
+        val content = binding.etComment.text.toString().trim()
+        if (content.isEmpty()) {
+            Toast.makeText(this, "请输入评论内容", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        //示例
+        val newComment = Comment(
+            id = (System.currentTimeMillis() / 1000).toInt(),
+            userName = "当前用户",
+            avatar = "https://i.pravatar.cc/100?img=@integer(1,70)",
+            content = content,
+            timestamp = "刚刚",
+            location = "北京",
+            likes = 0,
+            isLiked = false,
+            replyToUsername = replyToComment?.userName,
+            parentCommentId = replyToComment?.id,
+            replies = emptyList()
+        )
+
+        localComments.add(0, newComment)
+        saveCommentsToLocal()
+
+        binding.etComment.text.clear()
+        binding.etExpandedComment.text.clear()
+        binding.etComment.hint = "说点什么..."
+        replyToComment = null
+
+        binding.layoutExpandedInput.visibility = View.GONE
+        binding.etComment.clearFocus()
+
+        updateCommentDisplay()
+        Toast.makeText(this, "评论发送成功", Toast.LENGTH_SHORT).show()
+    }
+
     private fun toggleLike() {
         currentNote = currentNote.copy(
             isLiked = !currentNote.isLiked,
@@ -136,7 +262,6 @@ class NoteDetailActivity : AppCompatActivity(){
         )
 
         setResult(Activity.RESULT_OK, Intent().putExtra("NOTE", currentNote))
-
     }
 
     @SuppressLint("SetTextI18n")
@@ -146,13 +271,17 @@ class NoteDetailActivity : AppCompatActivity(){
 
         lifecycleScope.launch {
             binding.progressBar.visibility = View.VISIBLE
+            loadCommentsFromLocal()
+
             val result = commentRepository.getComments(noteId = noteId)
 
             binding.progressBar.visibility = View.GONE
             result.onSuccess { commentData ->
-                val comments = commentData.list
-                binding.tvCommentCount.text = "共 ${comments.size} 条评论"
-                commentAdapter.submitList(comments)
+                serverComments = commentData.list
+                val allComments = buildAllComments()
+
+                binding.tvCommentCount.text = "共 ${allComments.size} 条评论"
+                commentAdapter.submitList(allComments)
             }.onFailure { error ->
                 Toast.makeText(this@NoteDetailActivity,
                     "加载评论失败: ${error.message}",
@@ -160,6 +289,38 @@ class NoteDetailActivity : AppCompatActivity(){
                 ).show()
             }
         }
+    }
+
+    private fun loadCommentsFromLocal() {
+        val json = sharedPreferences.getString("COMMENTS", "[]")
+        val type = object : TypeToken<List<Comment>>() {}.type
+        val savedComments = gson.fromJson<List<Comment>>(json, type)
+        localComments.clear()
+        localComments.addAll(savedComments)
+    }
+
+    private fun saveCommentsToLocal() {
+        val json = gson.toJson(localComments)
+        sharedPreferences.edit().putString("COMMENTS", json).apply()
+    }
+
+
+    private fun buildAllComments(): List<Comment> {
+        val allComments = mutableListOf<Comment>()
+        allComments.addAll(localComments)
+        val localIds = localComments.map { it.id }.toSet()
+        serverComments.forEach { serverComment ->
+            if (!localIds.contains(serverComment.id)) {
+                allComments.add(serverComment)
+            }
+        }
+        return allComments
+    }
+
+    private fun updateCommentDisplay() {
+        val allComments = buildAllComments()
+        binding.tvCommentCount.text = "共 ${allComments.size} 条评论"
+        commentAdapter.submitList(allComments)
     }
 
     override fun onBackPressed() {
