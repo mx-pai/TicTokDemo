@@ -33,11 +33,22 @@ class CommentAdapter(
         fun bind(comment: Comment) {
             binding.apply {
                 tvUserName.text = comment.userName
-                tvContent.text = if (comment.replyToUsername != null) {
-                    "回复${comment.replyToUsername} ${comment.content}"
+                if (comment.parentCommentId != null) {
+                    tvContent.text = if (comment.replyToUsername != null) {
+                        "回复${comment.replyToUsername} ${comment.content}"
+                    } else {
+                        comment.content
+                    }
+                    val lp = root.layoutParams as ViewGroup.MarginLayoutParams
+                    lp.setMargins(48, 0, 0, 16)
+                    root.layoutParams = lp
                 } else {
-                    comment.content
+                    tvContent.text = comment.content
+                    val lp = root.layoutParams as ViewGroup.MarginLayoutParams
+                    lp.setMargins(0, 0, 0, 0)
+                    root.layoutParams = lp
                 }
+
                 tvInfo.text = "${comment.timestamp} ${comment.location.take(2)}"
                 tvLikeCount.text = comment.likes.toString()
                 ivAvatar.loadCircular(comment.avatar)
@@ -54,7 +65,7 @@ class CommentAdapter(
                         isLiked = !comment.isLiked,
                         likes = if (comment.isLiked) comment.likes - 1 else comment.likes + 1
                     )
-                    Log.d("CommentAdapter", "onLikeClick: $updated")
+                    //Log.d("CommentAdapter", "onLikeClick: $updated")调试用
 //                    val updatedList = currentList.toMutableList()
 //                    val index = updatedList.indexOfFirst { it.id == updated.id }
 //                    if (index != -1) {

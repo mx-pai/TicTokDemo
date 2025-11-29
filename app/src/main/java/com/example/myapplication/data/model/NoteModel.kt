@@ -47,7 +47,7 @@ data class Note(
 
 
 data class Comment(
-    val id: Int,
+    val id: Long,
     val userName: String,
     val avatar: String,
     val content: String,
@@ -56,7 +56,7 @@ data class Comment(
     val likes: Int,
     val isLiked: Boolean,
     val replyToUsername: String? = null,
-    val parentCommentId: Int? = null,
+    val parentCommentId: Long? = null,
     val replies: List<Comment>? = null
 )
 

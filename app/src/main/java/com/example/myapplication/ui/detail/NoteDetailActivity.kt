@@ -8,7 +8,6 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.viewpager2.widget.ViewPager2
@@ -36,7 +35,7 @@ class NoteDetailActivity : AppCompatActivity(){
     private val viewModel: MainViewModel by lazy {
         ViewModelProvider(this)[MainViewModel::class.java]
     }
-    private val commentRepository = CommentRepository()
+    private val commentRepository = CommentRepository
     private val localComments = mutableListOf<Comment>()
     private var serverComments: List<Comment> = emptyList()
     private val gson = Gson()
@@ -58,8 +57,8 @@ class NoteDetailActivity : AppCompatActivity(){
             finish()
             return
         }
-        sharedPreferences = getSharedPreferences("comments_${currentNote.id}", MODE_PRIVATE)
 
+        sharedPreferences = getSharedPreferences("comments_${currentNote.id}", MODE_PRIVATE)
         val note = intent.getParcelableExtra<Note>("NOTE")
 
         if (note == null) {
@@ -68,7 +67,10 @@ class NoteDetailActivity : AppCompatActivity(){
             return
         }
         initAdapters()
-        val galleryImages = note.images?.takeIf { it.isNotEmpty() } ?: listOf(note.cover)
+        val galleryImages = buildList {
+            note.cover?.let { add(it) }
+            note.images?.filter { it.isNotBlank() }?.let { addAll(it) }
+        }
         setupViewPager(galleryImages)
         setupUI(note)
         setupListeners()
@@ -223,9 +225,9 @@ class NoteDetailActivity : AppCompatActivity(){
 
         //示例
         val newComment = Comment(
-            id = (System.currentTimeMillis() / 1000).toInt(),
+            id = -System.currentTimeMillis(),
             userName = "当前用户",
-            avatar = "https://i.pravatar.cc/100?img=@integer(1,70)",
+            avatar = "https://api.dicebear.com/7.x/miniavs/png",
             content = content,
             timestamp = "刚刚",
             location = "北京",
@@ -239,16 +241,22 @@ class NoteDetailActivity : AppCompatActivity(){
         localComments.add(0, newComment)
         saveCommentsToLocal()
 
+        commentRepository.addCommentToCache(currentNote.id, newComment)
+
         binding.etComment.text.clear()
-        binding.etExpandedComment.text.clear()
         binding.etComment.hint = "说点什么..."
         replyToComment = null
 
         binding.layoutExpandedInput.visibility = View.GONE
         binding.etComment.clearFocus()
-
-        updateCommentDisplay()
+        updateCommentCount()
         Toast.makeText(this, "评论发送成功", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun updateCommentCount() {
+        val allComments = buildDisplayComments()
+        binding.tvCommentCount.text = "共 ${allComments.size} 条评论"
+        commentAdapter.submitList(allComments)
     }
 
     private fun toggleLike() {
@@ -266,37 +274,27 @@ class NoteDetailActivity : AppCompatActivity(){
 
     @SuppressLint("SetTextI18n")
     private fun loadComments() {
-        //val noteId = intent.getParcelableExtra<Note>("NOTE")?.id ?: return 后续完善
         val noteId = currentNote.id
 
         lifecycleScope.launch {
             binding.progressBar.visibility = View.VISIBLE
-            loadCommentsFromLocal()
-
-            val result = commentRepository.getComments(noteId = noteId)
+            val result = commentRepository.getComments(noteId)
 
             binding.progressBar.visibility = View.GONE
             result.onSuccess { commentData ->
                 serverComments = commentData.list
-                val allComments = buildAllComments()
-
+                val allComments = buildDisplayComments()
                 binding.tvCommentCount.text = "共 ${allComments.size} 条评论"
                 commentAdapter.submitList(allComments)
+                commentRepository.addLocalCommentToCache(noteId, allComments)
             }.onFailure { error ->
-                Toast.makeText(this@NoteDetailActivity,
-                    "加载评论失败: ${error.message}",
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(this@NoteDetailActivity, "加载评论失败", Toast.LENGTH_SHORT).show()
+                val allComments = buildDisplayComments()
+                binding.tvCommentCount.text = "共 ${allComments.size} 条评论"
+                commentAdapter.submitList(allComments)
             }
         }
-    }
 
-    private fun loadCommentsFromLocal() {
-        val json = sharedPreferences.getString("COMMENTS", "[]")
-        val type = object : TypeToken<List<Comment>>() {}.type
-        val savedComments = gson.fromJson<List<Comment>>(json, type)
-        localComments.clear()
-        localComments.addAll(savedComments)
     }
 
     private fun saveCommentsToLocal() {
@@ -307,20 +305,31 @@ class NoteDetailActivity : AppCompatActivity(){
 
     private fun buildAllComments(): List<Comment> {
         val allComments = mutableListOf<Comment>()
-        allComments.addAll(localComments)
-        val localIds = localComments.map { it.id }.toSet()
-        serverComments.forEach { serverComment ->
-            if (!localIds.contains(serverComment.id)) {
-                allComments.add(serverComment)
+        allComments.addAll(serverComments)
+        val serverIds = serverComments.map { it.id }.toSet()
+        localComments.forEach { localComment ->
+            if (!serverIds.contains(localComment.id)) {
+                allComments.add(0, localComment)
             }
         }
         return allComments
     }
 
-    private fun updateCommentDisplay() {
-        val allComments = buildAllComments()
-        binding.tvCommentCount.text = "共 ${allComments.size} 条评论"
-        commentAdapter.submitList(allComments)
+    private fun buildDisplayComments(): List<Comment> {
+        val all = buildAllComments()
+
+        val parents = all.filter { it.parentCommentId == null }
+
+        val childrenByParent = all
+            .filter { it.parentCommentId != null }
+            .groupBy { it.parentCommentId }
+
+        val result = mutableListOf<Comment>()
+        parents.forEach { parent ->
+            result.add(parent)
+            result.addAll(childrenByParent[parent.id] ?: emptyList())
+        }
+        return result
     }
 
     override fun onBackPressed() {

@@ -6,7 +6,9 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.model.Comment
+import com.example.myapplication.data.model.CommentData
 import com.example.myapplication.data.model.Note
+import com.example.myapplication.data.repository.CommentRepository
 import com.example.myapplication.data.repository.FeedRepository
 import kotlinx.coroutines.launch
 
@@ -29,6 +31,8 @@ class MainViewModel : ViewModel() {
     private val _hasMoreData = MutableLiveData<Boolean>()
     val hasMoreData: LiveData<Boolean> = _hasMoreData
 
+    private val commentCache = mutableMapOf<Int, CommentData>()
+    private val commentRepository = CommentRepository
 
     init {
         _hasMoreData.value = true
@@ -89,9 +93,6 @@ class MainViewModel : ViewModel() {
                         localNotes.addAll(distinctNotes)
                         _notes.value = localNotes.toList()
                     }
-                    Log.d("MainViewModel", "后端返回条数: ${newApiNotes.size}")
-                    Log.d("MainViewModel", "去重后剩余条数: ${distinctNotes.size}") // 如果这里是 0，说明就是这个问题
-
                     _hasMoreData.value = newApiNotes.size >= pageSize
                 }
             } finally {
@@ -110,13 +111,11 @@ class MainViewModel : ViewModel() {
                 likes = if (oldNote.isLiked) oldNote.likes - 1 else oldNote.likes + 1
             )
             currentList[index] = newNote
-
             val localIndex = localNotes.indexOfFirst { it.id == targetNote.id }
             if (localIndex != -1) {
                 localNotes[localIndex] = newNote
             }
             _notes.value = currentList
-
         }
     }
 
@@ -125,4 +124,5 @@ class MainViewModel : ViewModel() {
             if (note.id == updatedNote.id) updatedNote else note
         }
     }
+
 }

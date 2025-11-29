@@ -6,7 +6,7 @@ import com.example.myapplication.utils.Constants.BASE_NOTE_URL
 import com.example.myapplication.utils.NetworkUtils.getRetrofitInstance
 
 class FeedRepository {
-    private val apiService = getRetrofitInstance(BASE_NOTE_URL)?.create(ApiService::class.java)
+    private val apiService = getRetrofitInstance(BASE_NOTE_URL).create(ApiService::class.java)
 
     suspend fun getFeed(): Result<List<Note>> {
         return try {

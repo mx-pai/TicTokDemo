@@ -5,6 +5,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.request.RequestOptions
+import com.example.myapplication.R
 import com.example.myapplication.databinding.ItemImageBinding
 
 class ImageGalleryAdapter : RecyclerView.Adapter<ImageGalleryAdapter.ImageViewHolder>() {
@@ -16,6 +19,12 @@ class ImageGalleryAdapter : RecyclerView.Adapter<ImageGalleryAdapter.ImageViewHo
         fun bind(imageUrl: String) {
             Glide.with(binding.root.context)
                 .load(imageUrl)
+                .apply(
+                    RequestOptions()
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .placeholder(R.drawable.cover_placeholder)
+                        .dontAnimate()
+                )
                 .centerCrop()
                 .into(binding.ivImage)
         }
