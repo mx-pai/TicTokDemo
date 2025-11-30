@@ -291,7 +291,7 @@ app/src/main/java/com/example/myapplication/
 
 ## 演示视频 + 开发总结
 
-- **演示视频**：链接
+- **演示视频**：[Bilibili 链接](https://www.bilibili.com/video/BV1fBSTBVEmk)
 - **问题分析总结**：`tech_summary.md`
 
 ---
